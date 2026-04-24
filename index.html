@@ -6,110 +6,167 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
     
     <style>
-        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; padding: 20px; margin: 0; }
-        .controls { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        /* Estilos generales basados en la estética solicitada */
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            background-color: #f4f6f8; /* Fondo gris muy claro */
+            padding: 20px; 
+            margin: 0; 
+            color: #333;
+        }
+
+        /* Encabezado estilo corporativo */
+        .header-container {
+            width: 950px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #2E7D32; /* Línea verde superior */
+        }
         
-        button { padding: 10px 14px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        .btn-blue { background: #2196F3; color: white; }
-        .btn-green { background: #4CAF50; color: white; }
-        .btn-orange { background: #FF9800; color: white; }
-        .btn-grey { background: #78909C; color: white; }
-        .btn-red { background: #f44336; color: white; }
-        .btn-purple { background: #9C27B0; color: white; }
+        h2 {
+            color: #2E7D32; /* Verde corporativo */
+            margin: 0 0 5px 0;
+            font-size: 24px;
+        }
 
-        #canvas-container { border: 2px solid #263238; background: white; position: relative; }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
 
-        /* Menú Contextual con mejor diseño */
+        /* Tarjetas con borde izquierdo verde (como en la imagen) */
+        .card {
+            background: #fff;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 6px solid #2E7D32;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            width: 910px; /* Ajustado al canvas */
+        }
+
+        /* Controles */
+        .controls { 
+            display: flex; 
+            gap: 10px; 
+            flex-wrap: wrap; 
+            align-items: center; 
+        }
+        
+        button { 
+            padding: 9px 15px; 
+            cursor: pointer; 
+            border: 1px solid transparent; 
+            border-radius: 4px; 
+            font-weight: 600; 
+            font-size: 13px; 
+            transition: all 0.2s ease; 
+        }
+        button:hover { opacity: 0.85; transform: translateY(-1px); }
+        
+        /* Paleta de botones más sobria */
+        .btn-outline { background: #fff; color: #333; border: 1px solid #ccc; }
+        .btn-outline:hover { background: #f0f0f0; }
+        .btn-green { background: #2E7D32; color: white; }
+        .btn-light-green { background: #4CAF50; color: white; }
+        .btn-red { background: #fff; color: #d32f2f; border: 1px solid #d32f2f; }
+        .btn-red:hover { background: #ffebee; }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-family: inherit;
+            font-size: 13px;
+            color: #333;
+        }
+
+        /* Canvas */
+        #canvas-wrapper {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        /* Menú Contextual */
         #context-menu {
             display: none;
             position: fixed;
             background: white;
-            border: 1px solid #263238;
-            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            border: 1px solid #ccc;
+            box-shadow: 2px 4px 12px rgba(0,0,0,0.15);
             z-index: 100000;
             width: 180px;
-            border-radius: 5px;
+            border-radius: 4px;
             overflow: hidden;
         }
         #context-menu div {
-            padding: 12px 15px;
+            padding: 10px 15px;
             cursor: pointer;
-            color: #333;
+            color: #444;
             font-size: 13px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #f0f0f0;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
-        #context-menu div:hover { background: #e3f2fd; color: #1976D2; }
-        #context-menu .menu-header { background: #263238; color: white; font-weight: bold; cursor: default; }
-        #context-menu .menu-header:hover { background: #263238; color: white; }
+        #context-menu div:hover { background: #f1f8e9; color: #2E7D32; } /* Hover verde claro */
+        #context-menu .menu-header { background: #f5f5f5; color: #333; font-weight: bold; cursor: default; border-bottom: 2px solid #ddd; }
+        #context-menu .menu-header:hover { background: #f5f5f5; color: #333; }
 
-        /* Créditos sutiles */
-        .credits {
-            margin-top: 15px;
-            text-align: center;
-            color: #888;
-            font-size: 12px;
-        }
-
-        /* Encabezado verde con texto blanco */
-        h2 {
-            background: #2E7D32;
-            color: white;
-            padding: 12px 25px;
-            border-radius: 8px;
-            margin: 0 0 20px 0;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(46,125,50,0.3);
-        }
+        .divider { border-left: 1px solid #ddd; height: 30px; margin: 0 5px; }
     </style>
 </head>
 <body>
 
-    <h2>Levantamiento de Predios - Modo Capas y Plantillas</h2>
-
-    <div class="controls">
-        <button class="btn-blue" onclick="addIsoBlock('full')">+ Bloque Piso</button>
-        <button class="btn-blue" onclick="addDivider()">+ Línea Divisoria</button>
-        <button class="btn-green" onclick="addDoor()">+ Puerta</button>
-        <button class="btn-grey" onclick="addGarage()">+ Garaje</button>
-        <button class="btn-orange" onclick="addStairs()">+ Escaleras</button>
-        <button class="btn-orange" onclick="addText()">+ Etiqueta</button>
-        
-        <div style="border-left: 2px solid #ccc; margin: 0 5px; height: 30px;"></div>
-        
-        <button class="btn-purple" onclick="guardarPlantillaPersonalizada()">⭐ Guardar Plantilla</button>
-        
-        <select id="selector-plantilla" style="padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold;">
-            <option value="">-- Elegir Plantilla --</option>
-            <option value="casa_sencilla">🏠 Casa Sencilla (1 Piso)</option>
-            <option value="casa_garaje">🚗 Casa con Garaje</option>
-            <option value="personalizada">⭐ Mi Plantilla Guardada</option>
-        </select>
-        <button class="btn-grey" onclick="cargarPlantilla()" style="background: #607D8B;">Cargar</button>
-        
-        <div style="border-left: 2px solid #ccc; margin: 0 5px; height: 30px;"></div>
-        
-        <button class="btn-green" onclick="exportar()" style="background: #1b5e20;">💾 GUARDAR PNG</button>
+    <div class="header-container">
+        <h2>Herramienta de Levantamiento de Predios</h2>
+        <p class="subtitle">Módulo de dibujo técnico por capas y plantillas</p>
     </div>
 
-    <div id="canvas-container">
+    <div class="card controls">
+        <button class="btn-outline" onclick="addIsoBlock('full')">🧱 Bloque Piso</button>
+        <button class="btn-outline" onclick="addDivider()">📏 Línea Divisoria</button>
+        <button class="btn-outline" onclick="addDoor()">🚪 Puerta</button>
+        <button class="btn-outline" onclick="addGarage()">🚗 Garaje</button>
+        <button class="btn-outline" onclick="addStairs()">🪜 Escaleras</button>
+        <button class="btn-outline" onclick="addText()">📝 Etiqueta</button>
+        
+        <div class="divider"></div>
+        
+        <select id="selector-plantilla">
+            <option value="">-- Plantillas --</option>
+            <option value="casa_sencilla">Casa Sencilla (1 Piso)</option>
+            <option value="casa_garaje">Casa con Garaje</option>
+            <option value="personalizada">⭐ Mi Plantilla Guardada</option>
+        </select>
+        <button class="btn-light-green" onclick="cargarPlantilla()">Cargar</button>
+        <button class="btn-outline" onclick="guardarPlantillaPersonalizada()" title="Guardar el diseño actual como tu plantilla">⭐ Guardar</button>
+        
+        <div class="divider"></div>
+        
+        <button class="btn-red" onclick="limpiarHoja()">🗑️ Limpiar Plano</button>
+        <button class="btn-green" onclick="exportar()" style="margin-left: auto;">💾 Exportar PNG</button>
+    </div>
+
+    <div id="canvas-wrapper">
         <canvas id="c" width="950" height="550"></canvas>
         
         <div id="context-menu">
             <div class="menu-header">OPCIONES</div>
             <div onclick="ejecutarAccion('frente')">Traer al frente <span>▲</span></div>
-            <div onclick="ejecutarAccion('subir')">Subir un nivel <span>△</span></div>
-            <div onclick="ejecutarAccion('bajar')">Bajar un nivel <span>▽</span></div>
+            <div onclick="ejecutarAccion('subir')">Subir nivel <span>△</span></div>
+            <div onclick="ejecutarAccion('bajar')">Bajar nivel <span>▽</span></div>
             <div onclick="ejecutarAccion('fondo')">Enviar al fondo <span>▼</span></div>
             <div onclick="ejecutarAccion('clonar')">Duplicar <span>📋</span></div>
-            <div onclick="ejecutarAccion('borrar')" style="color: red; font-weight: bold;">Eliminar <span>🗑️</span></div>
+            <div onclick="ejecutarAccion('borrar')" style="color: #d32f2f; font-weight: bold;">Eliminar <span>🗑️</span></div>
         </div>
-    </div>
-
-    <div class="credits">
-        Elaborado por Alejandra Molina · Desarrollado para Levantamientos Técnicos
     </div>
 
     <script>
@@ -121,16 +178,15 @@
             canvas = new fabric.Canvas('c', {
                 fireRightClick: true,
                 stopContextMenu: true,
-                preserveObjectStacking: true // Evita que los objetos salten al frente al clickearlos
+                preserveObjectStacking: true,
+                backgroundColor: '#ffffff' // Asegura fondo blanco al exportar
             });
 
-            // Configuración para que las puertas y cosas pequeñas sean más fáciles de agarrar
             fabric.Object.prototype.perPixelTargetFind = true;
             fabric.Object.prototype.targetFindTolerance = 4;
 
             canvas.on('mouse:down', function(options) {
                 if (options.button === 3) {
-                    // Si hay un objeto bajo el puntero, lo seleccionamos
                     if (options.target) {
                         selectedObject = options.target;
                         canvas.setActiveObject(selectedObject);
@@ -153,11 +209,15 @@
                 case 'fondo': selectedObject.sendToBack(); break;
                 case 'subir': selectedObject.bringForward(); break;
                 case 'bajar': selectedObject.sendBackwards(); break;
-                case 'borrar': canvas.remove(selectedObject); break;
+                case 'borrar': 
+                    canvas.remove(selectedObject); 
+                    canvas.discardActiveObject();
+                    break;
                 case 'clonar':
                     selectedObject.clone(function(cloned) {
                         cloned.set({ left: selectedObject.left + 20, top: selectedObject.top + 20 });
                         canvas.add(cloned);
+                        canvas.setActiveObject(cloned);
                     });
                     break;
             }
@@ -165,30 +225,30 @@
             menu.style.display = 'none';
         }
 
-        // --- FUNCIONES DE DIBUJO INDIVIDUAL ---
+        // --- FUNCIONES DE DIBUJO ---
         function addIsoBlock(type) {
             let w = (type === 'full') ? 200 : 100;
-            const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
-            const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
-            const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+            const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#333', strokeWidth: 2 });
+            const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#f5f5f5', stroke:'#333', strokeWidth:2});
+            const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#fafafa', stroke:'#333', strokeWidth:2});
             const group = new fabric.Group([f, s, t], { left: 150, top: 150 });
             canvas.add(group);
-            canvas.sendToBack(group); // Las casas nuevas nacen atrás para no tapar puertas
+            canvas.sendToBack(group);
         }
 
         function addDivider() {
-            canvas.add(new fabric.Line([0, 0, 0, 100], { stroke: 'black', strokeWidth: 2, left: 250, top: 200, strokeDashArray: [5, 5] }));
+            canvas.add(new fabric.Line([0, 0, 0, 100], { stroke: '#333', strokeWidth: 2, left: 250, top: 200, strokeDashArray: [5, 5] }));
         }
 
         function addDoor() {
-            const door = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 180, top: 190 });
+            const door = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#333', strokeWidth: 2, left: 180, top: 190 });
             canvas.add(door);
             door.bringToFront();
         }
 
         function addGarage() {
-            const frame = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2 });
-            const line = new fabric.Line([0, 15, 80, 15], { stroke: '#000', strokeWidth: 1 });
+            const frame = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#333', strokeWidth: 2 });
+            const line = new fabric.Line([0, 15, 80, 15], { stroke: '#333', strokeWidth: 1 });
             const garage = new fabric.Group([frame, line], { left: 160, top: 190 });
             canvas.add(garage);
             garage.bringToFront();
@@ -197,7 +257,7 @@
         function addStairs() {
             const steps = [];
             for(let i=0; i<3; i++) {
-                steps.push(new fabric.Rect({ width: 40, height: 8, fill: '#fff', stroke: '#000', top: i*8 }));
+                steps.push(new fabric.Rect({ width: 40, height: 8, fill: '#fff', stroke: '#333', top: i*8 }));
             }
             const stairs = new fabric.Group(steps, { left: 250, top: 220 });
             canvas.add(stairs);
@@ -205,9 +265,18 @@
         }
 
         function addText() {
-            const txt = new fabric.IText('ETIQUETA', { left: 200, top: 160, fontSize: 18, fontWeight: 'bold' });
+            const txt = new fabric.IText('Etiqueta', { left: 200, top: 160, fontSize: 16, fontFamily: 'Segoe UI', fontWeight: 'bold', fill: '#2E7D32' });
             canvas.add(txt);
             txt.bringToFront();
+        }
+
+        // --- NUEVO: LIMPIAR HOJA ---
+        function limpiarHoja() {
+            if(confirm("¿Estás seguro de que deseas limpiar todo el plano? Esta acción no se puede deshacer.")) {
+                canvas.clear();
+                // Restaurar el color de fondo tras limpiar
+                canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+            }
         }
 
         // --- FUNCIONES DE PLANTILLAS ---
@@ -218,37 +287,37 @@
                 return;
             }
 
-            // Preguntamos si desean limpiar el lienzo antes de cargar el plano
             if(confirm("¿Deseas limpiar el área de trabajo antes de cargar la plantilla?")) {
                 canvas.clear();
+                canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
             }
 
             if (seleccion === 'casa_sencilla') {
                 let w = 200;
-                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
-                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
-                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#333', strokeWidth: 2 });
+                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#f5f5f5', stroke:'#333', strokeWidth:2});
+                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#fafafa', stroke:'#333', strokeWidth:2});
                 const bloqueCasa = new fabric.Group([f, s, t], { left: 150, top: 150 });
                 
-                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 230, top: 190 });
-                const texto = new fabric.IText('Casa Estándar', { left: 160, top: 160, fontSize: 16, fontWeight: 'bold' });
+                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#333', strokeWidth: 2, left: 230, top: 190 });
+                const texto = new fabric.IText('Casa Estándar', { left: 160, top: 160, fontSize: 16, fontFamily: 'Segoe UI', fontWeight: 'bold', fill: '#2E7D32' });
 
                 canvas.add(bloqueCasa, puerta, texto);
                 bloqueCasa.sendToBack(); 
             } 
             else if (seleccion === 'casa_garaje') {
                 let w = 300;
-                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
-                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
-                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#333', strokeWidth: 2 });
+                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#f5f5f5', stroke:'#333', strokeWidth:2});
+                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#fafafa', stroke:'#333', strokeWidth:2});
                 const bloqueCasa = new fabric.Group([f, s, t], { left: 100, top: 150 });
 
-                const frameG = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2 });
-                const lineG = new fabric.Line([0, 15, 80, 15], { stroke: '#000', strokeWidth: 1 });
+                const frameG = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#333', strokeWidth: 2 });
+                const lineG = new fabric.Line([0, 15, 80, 15], { stroke: '#333', strokeWidth: 1 });
                 const garaje = new fabric.Group([frameG, lineG], { left: 120, top: 190 });
 
-                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 260, top: 190 });
-                const texto = new fabric.IText('Casa con Garaje', { left: 120, top: 160, fontSize: 16, fontWeight: 'bold' });
+                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#333', strokeWidth: 2, left: 260, top: 190 });
+                const texto = new fabric.IText('Casa con Garaje', { left: 120, top: 160, fontSize: 16, fontFamily: 'Segoe UI', fontWeight: 'bold', fill: '#2E7D32' });
 
                 canvas.add(bloqueCasa, garaje, puerta, texto);
                 bloqueCasa.sendToBack();
@@ -260,7 +329,7 @@
                         canvas.renderAll();
                     });
                 } else {
-                    alert("Aún no tienes ninguna plantilla personalizada. Construye un plano y haz clic en '⭐ Guardar Plantilla'.");
+                    alert("Aún no tienes ninguna plantilla personalizada. Construye un plano y haz clic en '⭐ Guardar'.");
                 }
             }
 
@@ -274,33 +343,46 @@
             }
             const diseñoJSON = JSON.stringify(canvas.toJSON());
             localStorage.setItem('mi_plantilla_predios', diseñoJSON);
-            alert("¡Excelente! Tu plantilla ha sido guardada. Ahora puedes usarla cuando quieras desde el menú de plantillas seleccionando '⭐ Mi Plantilla Guardada'.");
+            alert("¡Plantilla guardada con éxito!");
         }
 
         function exportar() {
             canvas.discardActiveObject().renderAll();
             const link = document.createElement('a');
-            link.download = 'Levantamiento.png';
+            link.download = 'Levantamiento_Predio.png';
             link.href = canvas.toDataURL({ format: 'png', multiplier: 2 });
             link.click();
         }
 
-        // --- CONTROLES DE TECLADO ---
+        // --- CONTROLES DE TECLADO AMPLIADOS ---
         document.addEventListener('keydown', (e) => {
             const obj = canvas.getActiveObject();
+            
+            // Si el usuario está editando un texto, no interferimos con las teclas
+            if (obj && obj.isEditing) return;
+
             if (!obj) return;
             
-            // Prevenir que las flechas muevan la pantalla si un objeto está seleccionado
+            // Prevenir scroll de la página al usar flechas
             if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
                 e.preventDefault();
             }
 
+            // Eliminar con Suprimir (Delete) o Retroceso (Backspace)
+            if(e.key === "Delete" || e.key === "Backspace") {
+                e.preventDefault(); // Evita que Backspace te regrese a la página anterior en el navegador
+                canvas.remove(obj);
+                canvas.discardActiveObject();
+                canvas.renderAll();
+                return;
+            }
+
+            // Movimiento con flechas
             const step = 5; 
             if(e.key === "ArrowUp") obj.top -= step;
             if(e.key === "ArrowDown") obj.top += step;
             if(e.key === "ArrowLeft") obj.left -= step;
             if(e.key === "ArrowRight") obj.left += step;
-            if(e.key === "Delete") canvas.remove(obj);
             obj.setCoords();
             canvas.renderAll();
         });
