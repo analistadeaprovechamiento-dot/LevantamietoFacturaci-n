@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Levantamiento Técnico - Control de Capas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background-color: #f0f2f5; padding: 20px; margin: 0; }
+        .controls { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        
+        button { padding: 10px 14px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; font-size: 12px; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        .btn-blue { background: #2196F3; color: white; }
+        .btn-green { background: #4CAF50; color: white; }
+        .btn-orange { background: #FF9800; color: white; }
+        .btn-grey { background: #78909C; color: white; }
+        .btn-red { background: #f44336; color: white; }
+        .btn-purple { background: #9C27B0; color: white; }
+
+        #canvas-container { border: 2px solid #263238; background: white; position: relative; }
+
+        /* Menú Contextual con mejor diseño */
+        #context-menu {
+            display: none;
+            position: fixed;
+            background: white;
+            border: 1px solid #263238;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
+            z-index: 100000;
+            width: 180px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        #context-menu div {
+            padding: 12px 15px;
+            cursor: pointer;
+            color: #333;
+            font-size: 13px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+        }
+        #context-menu div:hover { background: #e3f2fd; color: #1976D2; }
+        #context-menu .menu-header { background: #263238; color: white; font-weight: bold; cursor: default; }
+        #context-menu .menu-header:hover { background: #263238; color: white; }
+
+        /* Créditos sutiles */
+        .credits {
+            margin-top: 15px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+
+        /* Encabezado verde con texto blanco */
+        h2 {
+            background: #2E7D32;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            margin: 0 0 20px 0;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(46,125,50,0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Levantamiento de Predios - Modo Capas y Plantillas</h2>
+
+    <div class="controls">
+        <button class="btn-blue" onclick="addIsoBlock('full')">+ Bloque Piso</button>
+        <button class="btn-blue" onclick="addDivider()">+ Línea Divisoria</button>
+        <button class="btn-green" onclick="addDoor()">+ Puerta</button>
+        <button class="btn-grey" onclick="addGarage()">+ Garaje</button>
+        <button class="btn-orange" onclick="addStairs()">+ Escaleras</button>
+        <button class="btn-orange" onclick="addText()">+ Etiqueta</button>
+        
+        <div style="border-left: 2px solid #ccc; margin: 0 5px; height: 30px;"></div>
+        
+        <button class="btn-purple" onclick="guardarPlantillaPersonalizada()">⭐ Guardar Plantilla</button>
+        
+        <select id="selector-plantilla" style="padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-weight: bold;">
+            <option value="">-- Elegir Plantilla --</option>
+            <option value="casa_sencilla">🏠 Casa Sencilla (1 Piso)</option>
+            <option value="casa_garaje">🚗 Casa con Garaje</option>
+            <option value="personalizada">⭐ Mi Plantilla Guardada</option>
+        </select>
+        <button class="btn-grey" onclick="cargarPlantilla()" style="background: #607D8B;">Cargar</button>
+        
+        <div style="border-left: 2px solid #ccc; margin: 0 5px; height: 30px;"></div>
+        
+        <button class="btn-green" onclick="exportar()" style="background: #1b5e20;">💾 GUARDAR PNG</button>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="c" width="950" height="550"></canvas>
+        
+        <div id="context-menu">
+            <div class="menu-header">OPCIONES</div>
+            <div onclick="ejecutarAccion('frente')">Traer al frente <span>▲</span></div>
+            <div onclick="ejecutarAccion('subir')">Subir un nivel <span>△</span></div>
+            <div onclick="ejecutarAccion('bajar')">Bajar un nivel <span>▽</span></div>
+            <div onclick="ejecutarAccion('fondo')">Enviar al fondo <span>▼</span></div>
+            <div onclick="ejecutarAccion('clonar')">Duplicar <span>📋</span></div>
+            <div onclick="ejecutarAccion('borrar')" style="color: red; font-weight: bold;">Eliminar <span>🗑️</span></div>
+        </div>
+    </div>
+
+    <div class="credits">
+        Elaborado por Alejandra Molina · Desarrollado para Levantamientos Técnicos
+    </div>
+
+    <script>
+        var canvas;
+        var selectedObject = null;
+        var menu = document.getElementById('context-menu');
+
+        window.onload = function() {
+            canvas = new fabric.Canvas('c', {
+                fireRightClick: true,
+                stopContextMenu: true,
+                preserveObjectStacking: true // Evita que los objetos salten al frente al clickearlos
+            });
+
+            // Configuración para que las puertas y cosas pequeñas sean más fáciles de agarrar
+            fabric.Object.prototype.perPixelTargetFind = true;
+            fabric.Object.prototype.targetFindTolerance = 4;
+
+            canvas.on('mouse:down', function(options) {
+                if (options.button === 3) {
+                    // Si hay un objeto bajo el puntero, lo seleccionamos
+                    if (options.target) {
+                        selectedObject = options.target;
+                        canvas.setActiveObject(selectedObject);
+                        
+                        menu.style.display = 'block';
+                        menu.style.left = options.e.clientX + 'px';
+                        menu.style.top = options.e.clientY + 'px';
+                    }
+                } else {
+                    menu.style.display = 'none';
+                }
+            });
+        };
+
+        function ejecutarAccion(tipo) {
+            if (!selectedObject) return;
+
+            switch(tipo) {
+                case 'frente': selectedObject.bringToFront(); break;
+                case 'fondo': selectedObject.sendToBack(); break;
+                case 'subir': selectedObject.bringForward(); break;
+                case 'bajar': selectedObject.sendBackwards(); break;
+                case 'borrar': canvas.remove(selectedObject); break;
+                case 'clonar':
+                    selectedObject.clone(function(cloned) {
+                        cloned.set({ left: selectedObject.left + 20, top: selectedObject.top + 20 });
+                        canvas.add(cloned);
+                    });
+                    break;
+            }
+            canvas.renderAll();
+            menu.style.display = 'none';
+        }
+
+        // --- FUNCIONES DE DIBUJO INDIVIDUAL ---
+        function addIsoBlock(type) {
+            let w = (type === 'full') ? 200 : 100;
+            const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
+            const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
+            const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+            const group = new fabric.Group([f, s, t], { left: 150, top: 150 });
+            canvas.add(group);
+            canvas.sendToBack(group); // Las casas nuevas nacen atrás para no tapar puertas
+        }
+
+        function addDivider() {
+            canvas.add(new fabric.Line([0, 0, 0, 100], { stroke: 'black', strokeWidth: 2, left: 250, top: 200, strokeDashArray: [5, 5] }));
+        }
+
+        function addDoor() {
+            const door = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 180, top: 190 });
+            canvas.add(door);
+            door.bringToFront();
+        }
+
+        function addGarage() {
+            const frame = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2 });
+            const line = new fabric.Line([0, 15, 80, 15], { stroke: '#000', strokeWidth: 1 });
+            const garage = new fabric.Group([frame, line], { left: 160, top: 190 });
+            canvas.add(garage);
+            garage.bringToFront();
+        }
+
+        function addStairs() {
+            const steps = [];
+            for(let i=0; i<3; i++) {
+                steps.push(new fabric.Rect({ width: 40, height: 8, fill: '#fff', stroke: '#000', top: i*8 }));
+            }
+            const stairs = new fabric.Group(steps, { left: 250, top: 220 });
+            canvas.add(stairs);
+            stairs.bringToFront();
+        }
+
+        function addText() {
+            const txt = new fabric.IText('ETIQUETA', { left: 200, top: 160, fontSize: 18, fontWeight: 'bold' });
+            canvas.add(txt);
+            txt.bringToFront();
+        }
+
+        // --- FUNCIONES DE PLANTILLAS ---
+        function cargarPlantilla() {
+            const seleccion = document.getElementById('selector-plantilla').value;
+            if (!seleccion) {
+                alert("Por favor, selecciona una plantilla del menú.");
+                return;
+            }
+
+            // Preguntamos si desean limpiar el lienzo antes de cargar el plano
+            if(confirm("¿Deseas limpiar el área de trabajo antes de cargar la plantilla?")) {
+                canvas.clear();
+            }
+
+            if (seleccion === 'casa_sencilla') {
+                let w = 200;
+                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
+                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
+                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+                const bloqueCasa = new fabric.Group([f, s, t], { left: 150, top: 150 });
+                
+                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 230, top: 190 });
+                const texto = new fabric.IText('Casa Estándar', { left: 160, top: 160, fontSize: 16, fontWeight: 'bold' });
+
+                canvas.add(bloqueCasa, puerta, texto);
+                bloqueCasa.sendToBack(); 
+            } 
+            else if (seleccion === 'casa_garaje') {
+                let w = 300;
+                const f = new fabric.Rect({ width: w, height: 100, fill: '#fff', stroke: '#000', strokeWidth: 2 });
+                const s = new fabric.Polygon([{x:w,y:0},{x:w+60,y:-40},{x:w+60,y:60},{x:w,y:100}], {fill:'#ddd', stroke:'#000', strokeWidth:2});
+                const t = new fabric.Polygon([{x:0,y:0},{x:60,y:-40},{x:w+60,y:-40},{x:w,y:0}], {fill:'#eee', stroke:'#000', strokeWidth:2});
+                const bloqueCasa = new fabric.Group([f, s, t], { left: 100, top: 150 });
+
+                const frameG = new fabric.Rect({ width: 80, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2 });
+                const lineG = new fabric.Line([0, 15, 80, 15], { stroke: '#000', strokeWidth: 1 });
+                const garaje = new fabric.Group([frameG, lineG], { left: 120, top: 190 });
+
+                const puerta = new fabric.Rect({ width: 35, height: 60, fill: '#fff', stroke: '#000', strokeWidth: 2, left: 260, top: 190 });
+                const texto = new fabric.IText('Casa con Garaje', { left: 120, top: 160, fontSize: 16, fontWeight: 'bold' });
+
+                canvas.add(bloqueCasa, garaje, puerta, texto);
+                bloqueCasa.sendToBack();
+            }
+            else if (seleccion === 'personalizada') {
+                const diseñoGuardado = localStorage.getItem('mi_plantilla_predios');
+                if (diseñoGuardado) {
+                    canvas.loadFromJSON(diseñoGuardado, function() {
+                        canvas.renderAll();
+                    });
+                } else {
+                    alert("Aún no tienes ninguna plantilla personalizada. Construye un plano y haz clic en '⭐ Guardar Plantilla'.");
+                }
+            }
+
+            document.getElementById('selector-plantilla').value = "";
+        }
+
+        function guardarPlantillaPersonalizada() {
+            if (canvas.getObjects().length === 0) {
+                alert("El lienzo está vacío. Dibuja tu plano base primero para guardarlo.");
+                return;
+            }
+            const diseñoJSON = JSON.stringify(canvas.toJSON());
+            localStorage.setItem('mi_plantilla_predios', diseñoJSON);
+            alert("¡Excelente! Tu plantilla ha sido guardada. Ahora puedes usarla cuando quieras desde el menú de plantillas seleccionando '⭐ Mi Plantilla Guardada'.");
+        }
+
+        function exportar() {
+            canvas.discardActiveObject().renderAll();
+            const link = document.createElement('a');
+            link.download = 'Levantamiento.png';
+            link.href = canvas.toDataURL({ format: 'png', multiplier: 2 });
+            link.click();
+        }
+
+        // --- CONTROLES DE TECLADO ---
+        document.addEventListener('keydown', (e) => {
+            const obj = canvas.getActiveObject();
+            if (!obj) return;
+            
+            // Prevenir que las flechas muevan la pantalla si un objeto está seleccionado
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+
+            const step = 5; 
+            if(e.key === "ArrowUp") obj.top -= step;
+            if(e.key === "ArrowDown") obj.top += step;
+            if(e.key === "ArrowLeft") obj.left -= step;
+            if(e.key === "ArrowRight") obj.left += step;
+            if(e.key === "Delete") canvas.remove(obj);
+            obj.setCoords();
+            canvas.renderAll();
+        });
+    </script>
+</body>
+</html>
